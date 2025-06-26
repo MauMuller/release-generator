@@ -1,5 +1,5 @@
-name: test
-run-name: test-test
+name: Generate a release
+run-name: generate-release
 
 defaults:
   run:
@@ -7,41 +7,33 @@ defaults:
 
 on: 
   workflow_dispatch:
-    language:
-      description: input here your languge
-      required: true
-      default: 'bah'
-      type: string
+    inputs:
+      start-tag:
+        description: "Type the inicial range tag here:"
+        required: false
+        type: string 
+      end-tag:
+        description: "Type the final range tag here:"
+        required: true
+        type: string 
 
 jobs:
-  use-metafile-yaml-for-test:
+  generate-release:
     name: job test
     runs-on: ubuntu-latest
-    outputs:
-      lang: ${{ steps.output-language.outputs.echo-language }}
     steps:
-      - uses: actions/checkout@4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
-      - name: get action on root 
-        id: output-language
-        uses: ./action.yml
-        with:
-          hello-world-input: $LANGUAGE_INPUTED
-        env:
-          LANGUAGE_INPUTED: ${{ inputs.language }}
-      - name: use inside job the output
-        run: echo "the lang typed was: $LANGUAGE_GOT"
-        env:
-          LANGUAGE_GOT: ${{ steps.output-language.outputs.echo-language }}
 
-  use-language-got-inside-job:
-    name: just a print
-    needs: [use-metafile-yaml-for-test]
-    runs-on: ubuntu-latest
-    steps:
-      - name: printing language
-        run: echo $LANGUAGE
+      - name: teste
+        run: echo $TOKEN
         env:
-          LANGUAGE: ${{ jobs.use-metafile-yaml-for-test.outputs.lang }}
+          TOKEN: ${{ secrets.token }}
+
+      - uses: ./
+        with:
+          token: ${{ secrets.token }}
+          start-tag: ${{ inputs.start-tag }}
+          end-tag: ${{ inputs.end-tag }}

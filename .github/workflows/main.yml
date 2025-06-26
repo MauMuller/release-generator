@@ -7,11 +7,11 @@ defaults:
 
 on: 
   workflow_dispatch:
-    language:
-      description: input here your languge
-      required: true
-      default: 'bah'
-      type: string
+    inputs:
+      language:
+        description: "input here your languge"
+        required: true
+        type: string 
 
 jobs:
   use-metafile-yaml-for-test:
@@ -20,19 +20,22 @@ jobs:
     outputs:
       lang: ${{ steps.output-language.outputs.echo-language }}
     steps:
-      - uses: actions/checkout@4
+
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
-      - name: get action on root 
-        id: output-language
-        uses: ./action.yml
+
+      - name: testeeeee
+        run: ls -lah
+
+      - id: output-language
+        uses: ./
         with:
-          hello-world-input: $LANGUAGE_INPUTED
-        env:
-          LANGUAGE_INPUTED: ${{ inputs.language }}
+          hello-world-input: ${{ inputs.language }}
+
       - name: use inside job the output
-        run: echo "the lang typed was: $LANGUAGE_GOT"
+        run: echo "the lang typed was $LANGUAGE_GOT"
         env:
           LANGUAGE_GOT: ${{ steps.output-language.outputs.echo-language }}
 
@@ -44,4 +47,4 @@ jobs:
       - name: printing language
         run: echo $LANGUAGE
         env:
-          LANGUAGE: ${{ jobs.use-metafile-yaml-for-test.outputs.lang }}
+          LANGUAGE: ${{ needs.use-metafile-yaml-for-test.outputs.lang }}

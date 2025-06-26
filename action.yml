@@ -1,0 +1,83 @@
+name: "Release generator"
+author: "MauMuller"
+description: "Create custom releases automatically based on your projects commits"
+
+inputs:
+  token:
+    type: string
+    description: "Secrets to access project:"
+    required: true
+
+  end-tag:
+    type: string
+    description: "Get final range tag:"
+    required: true
+
+  start-tag:
+    type: string
+    description: "Get start range tag:"
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - id: end-tag
+      name: Get typed END tag
+      shell: bash
+      env:
+        END_TAG: ${{ inputs.end-tag }}
+      run: |
+        if [ ! "$(git tag | grep -Eio "^$END_TAG$")" ]
+          then 
+            echo -e "\nTag typed ($END_TAG) wasnt find at project tag's list.\n"
+            exit 1
+        fi
+
+        echo "END_TAG=$END_TAG" >> "$GITHUB_OUTPUT"
+
+    - id: start-tag
+      name: Get typed START tag
+      shell: bash
+      env:
+        END_TAG: ${{ inputs.start-tag }}
+      run: |
+        if [ ! "$START_TAG" ]
+          then            
+            LATEST_RELEASE_TAG="$(gh release list -O desc --json tagName --jq ".[].tagName" -L 1)"
+            START_TAG="$(git tag --sort version:refname | grep -A 1 "$(echo "$LATEST_RELEASE_TAG")" | tail -n 1)"
+        fi
+        
+        if [ ! "$(git tag | grep -Eio "^$START_TAG$")" ]
+          then 
+            echo -e "\nTag typed ($START_TAG) wasnt find at project tag's list.\n"
+            exit 1
+        fi
+        
+        echo "START_TAG=$START_TAG" >> "$GITHUB_OUTPUT"
+
+    - id: get-template
+      shell: bash
+      name: Get template
+      env:
+        TEMPLATE: "@{refactor}=- %s\n"
+      run: echo "TEMPLATE=$TEMPLATE" >> "$GITHUB_OUTPUT"
+
+    - name: Create temporary makdown file
+      shell: bash
+      env: 
+        TEMP_PATH: ".github/temp"
+        TEMP_FILE: ${{ $RANDOM }}
+        TEMPLATE: ${{ steps.get-template.outputs.TEMPLATE }}
+      run: |
+        RELEASE_BODY="$(echo $TEMPLATE | sed -E "s/@\{(.+)\}\=(.+)/git log --format='\\2' $START_TAG...$END_TAG | grep -Pi '\\1'/gie")"
+        mkdir -p "$TEMP_PATH"
+        echo "$RELEASE_BODY" > "$TEMP_PATH/$TEMP_FILE"
+
+    - name: Create release
+      shell: bash
+      env: 
+        TEMP_PATH: ".github/temp"
+        TEMP_FILE: "release.md"
+        END_TAG: ${{ steps.end-tag.outputs.END_TAG }}
+        START_TAG: ${{ steps.start-tag.outputs.START_TAG }}
+      run: gh release create "$END_TAG" -F "$TEMP_PATH/$TEMP_FILE"

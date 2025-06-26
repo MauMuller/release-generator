@@ -1,0 +1,34 @@
+name: Generate a release
+run-name: generate-release
+
+defaults:
+  run:
+    shell: bash
+
+on: 
+  workflow_dispatch:
+    inputs:
+      start-tag:
+        description: "Type the inicial range tag here:"
+        required: false
+        type: string 
+      end-tag:
+        description: "Type the final range tag here:"
+        required: true
+        type: string 
+
+jobs:
+  generate-release:
+    name: job test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: ./
+        with:
+          token: ${{ secrets.token }}
+          start-tag: ${{ inputs.start-tag }}
+          end-tag: ${{ inputs.end-tag }}

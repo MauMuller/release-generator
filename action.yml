@@ -1,0 +1,23 @@
+name: "Release generator"
+author: "MauMuller"
+description: "Create custom releases automatically based on your projects commits"
+inputs:
+  hello-world-input:
+    description: "Put your language here"
+    required: true
+outputs:
+  echo-language:
+    description: "Just a print language"
+    value: ${{ steps.echo-language.outputs }}
+runs:
+  using: "composite"
+  steps:
+    - name: echo language
+      shell: bash
+      id: echo-language
+      run: |
+        echo $INPUT_HELLO_WORLD
+        echo "language=$INPUT_HELLO_WORLD" >> $GITHUB_OUTPUT
+      env:
+        INPUT_HELLO_WORLD: ${{ inputs.hello-world-input }}
+

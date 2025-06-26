@@ -1,0 +1,138 @@
+name: "Release generator"
+author: "MauMuller"
+description: "Create custom releases automatically based on your projects commits"
+
+inputs:
+  token:
+    description: "Secrets to access project:"
+    required: true
+
+  end-tag:
+    type: string
+    description: "Get final range tag:"
+    required: true
+
+  start-tag:
+    type: string
+    description: "Get start range tag:"
+    required: false
+
+  template:
+    type: string
+    description: "Template for release generator"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - id: end-tag
+      name: Get typed END tag
+      shell: bash
+      env:
+        END_TAG: ${{ inputs.end-tag }}
+      run: |
+        if [ ! "$(git tag | grep -Eio "^$END_TAG$")" ]
+          then 
+            echo -e "\nTag typed ($END_TAG) wasnt find at project tag's list.\n"
+            exit 1
+        fi
+
+        echo "END_TAG=$END_TAG" >> "$GITHUB_OUTPUT"
+
+    - id: start-tag
+      name: Get typed START tag
+      shell: bash
+      env:
+        START_TAG: ${{ inputs.start-tag }}
+        GH_TOKEN: ${{ inputs.token }}
+      run: |
+        if [ ! "$START_TAG" ]
+          then            
+            LATEST_RELEASE_TAG="$(gh release list -O desc --json tagName --jq ".[].tagName" -L 1)"
+            echo "$LATEST_RELEASE_TAG"
+            START_TAG="$(git tag --sort version:refname | grep -A 1 "$(echo "$LATEST_RELEASE_TAG")" | tail -n 1)"
+        fi
+        
+        if [ ! "$(git tag | grep -Eio "^$START_TAG$")" ]
+          then 
+            echo -e "\nTag typed ($START_TAG) wasnt find at project tag's list.\n"
+            exit 1
+        fi
+        
+        echo "START_TAG=$START_TAG" >> "$GITHUB_OUTPUT"
+
+    - id: generation-of-paths
+      shell: bash
+      name: Generate PATHs for template
+      env:
+        FOLDER: "release-generator"
+      run: |
+        DIR_PATH="$PWD/$FOLDER/$RANDOM/"
+        mkdir -p "$DIR_PATH"
+
+        echo "FULL_PATH_DIR=$DIR_PATH" >> "$GITHUB_OUTPUT"
+
+    - name: teste
+      shell: bash
+      env:
+        TEMPLATE: ${{ inputs.TEMPLATE }}
+        DIR: ${{ steps.generation-of-paths.outputs.FULL_PATH_DIR }}
+      run: |
+        echo "
+        <?php
+          require_once realpath(__DIR__ . '/vendor/autoload.php');
+          
+          \$loader = new \Twig\Loader\ArrayLoader(['index' => '$TEMPLATE']);
+          \$twig = new \Twig\Environment(\$loader);
+
+          echo \$twig->render('index', ['teste' => ['teste' => 'Fabien']]);
+        " >> "$DIR/index.php"
+
+        cat "$DIR/index.php"
+
+        docker run \
+        --rm \
+        --mount type=bind,src=$DIR,dst=/app \
+        composer/composer:2.8.10 sh -c "
+          composer require twig/twig:^3.0;
+          composer dump-autoload;
+          ls -lah
+          php -f ./index.php
+        "
+       
+#   - id: template-file
+#     name: Create temporary makdown file
+#     shell: bash
+#     env: 
+#       GH_TOKEN: ${{ inputs.token }}
+#       END_TAG: ${{ steps.end-tag.outputs.END_TAG }}
+#       START_TAG: ${{ steps.start-tag.outputs.START_TAG }}
+#       TEMPLATE: ${{ steps.get-template.outputs.TEMPLATE }}
+#       TEMP_PATH: ".github/temp"
+#     run: |
+#       RELEASE_BODY="$(echo $TEMPLATE | sed -E "s/@\{(.+)\}\=(.+)/git log --format='\\2' $START_TAG...$END_TAG | grep -Pi '\\1'/gie")"
+
+#       if [ ! "$RELEASE_BODY" ]
+#         then 
+#             echo -e "\nWasnt find commits with range between $START_TAG...$END_TAG with markdown content passed"
+#           exit 1
+#       fi
+
+#       mkdir -p "$TEMP_PATH"
+
+#       GENERATED_FILE_PATH="$TEMP_PATH/$RANDOM"
+
+#       echo "$RELEASE_BODY" > "$GENERATED_FILE_PATH"        
+
+#       echo "GENERATED_FILE_PATH=$GENERATED_FILE_PATH" >> "$GITHUB_OUTPUT"
+
+#   - name: Create release
+#     shell: bash
+#     env: 
+#       GH_TOKEN: ${{ inputs.token }}
+#       GENERATED_FILE_PATH: ${{ steps.template-file.outputs.GENERATED_FILE_PATH }}
+#       END_TAG: ${{ steps.end-tag.outputs.END_TAG }}
+#       START_TAG: ${{ steps.start-tag.outputs.START_TAG }}
+#     run: |
+#       cat "$GENERATED_FILE_PATH"
+#       gh release create "$END_TAG" -F "$GENERATED_FILE_PATH"

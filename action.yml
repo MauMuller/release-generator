@@ -82,13 +82,27 @@ runs:
         <?php
           require_once realpath(__DIR__ . '/vendor/autoload.php');
           
-          \$loader = new \Twig\Loader\ArrayLoader(['index' => '$TEMPLATE']);
+          echo "aqui 0";
+
+          \$loader = new \Twig\Loader\ArrayLoader(['index' => 
+            <<<SINTAX
+              $TEMPLATE
+            SINTAX
+          ]);
+
+          echo "aqui 0.1";
+
           \$twig = new \Twig\Environment(\$loader);
 
-          echo \$twig->render('index', ['teste' => ['teste' => 'Fabien']]);
-        " >> "$DIR/index.php"
+          echo "aqui 1";
 
-        cat "$DIR/index.php"
+          //\$wasExecuted = exec('git log --format="teste %an" v0.1.0 ^v0.2.0 2>&1', $results);
+
+          echo "aqui"
+          //var_dump(\$results);
+
+          echo \$twig->render('index', []);
+        " >> "$DIR/index.php"
 
         docker run \
         --rm \
@@ -96,7 +110,6 @@ runs:
         composer/composer:2.8.10 sh -c "
           composer require twig/twig:^3.0;
           composer dump-autoload;
-          ls -lah
           php -f ./index.php
         "
        

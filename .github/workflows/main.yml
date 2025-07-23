@@ -29,6 +29,12 @@ jobs:
       - uses: ./
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          template: "## teste: - {{ teste.teste }}"
+          template: "
+            {{% for commit in commits %}}
+              {{% if commit.type == 'refactor' %}}
+                - {{ commit.type }}: {{ commit.description }}
+              {{% endif %}}
+            {{% endfor %}}
+          "
           start-tag: ${{ inputs.start-tag }}
           end-tag: ${{ inputs.end-tag }}

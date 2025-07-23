@@ -1,0 +1,32 @@
+{
+	"hashes": {
+		"commit": {
+			"full": "%H",
+			"abbreviated": "%h"
+		},
+		"tree": {
+			"full": "%T",
+			"abbreviated": "%t"
+		},
+		"parent": {
+			"full": "%P",
+			"abbreviated": "%p"
+		}
+	},
+	"author": {
+		"name": "%an",
+		"date": "%ad",
+		"email": {
+			"full": "%ae",
+			"local": "%al"
+		}
+	},
+	"commiter": {
+		"name": "%cn",
+		"date": "%cd",
+		"email": {
+			"full": "%ce",
+			"local": "%cl"
+		}
+	}
+}

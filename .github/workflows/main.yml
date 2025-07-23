@@ -16,6 +16,10 @@ on:
         description: "Type the final range tag here:"
         required: true
         type: string 
+      template:
+        description: "Template input"
+        required: true
+        type: string 
 jobs:
   generate-release:
     name: job test
@@ -29,6 +33,6 @@ jobs:
       - uses: ./
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          template: "## teste: - {{ teste.teste }}"
+          template: ${{ inputs.template }}
           start-tag: ${{ inputs.start-tag }}
           end-tag: ${{ inputs.end-tag }}
